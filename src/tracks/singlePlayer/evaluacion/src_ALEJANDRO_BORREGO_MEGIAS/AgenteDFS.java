@@ -103,6 +103,7 @@ public class AgenteDFS extends AbstractPlayer {
 	
 	public Boolean DFS_search(Nodo u, Nodo objetivo,ArrayList<Nodo> muros,StateObservation stateObs,Hashtable<Double,Boolean> estado){
 		ArrayList<Nodo> sucesores= new ArrayList<>();
+		System.out.println("He entrado en la función DFS_search");
 		if(u.equals(objetivo)){
 			System.out.println("calculamos el plan");
 			plan=u.calculaCamino();
@@ -116,7 +117,9 @@ public class AgenteDFS extends AbstractPlayer {
 			if (!estado.containsKey(sucesores.get(i).id)) {
 				estado.put(sucesores.get(i).id,true);
 				sucesores.get(i).padre=u;
-				return DFS_search(sucesores.get(i),objetivo,muros,stateObs,estado);
+				if(DFS_search(sucesores.get(i),objetivo,muros,stateObs,estado)) {
+					return true;
+				}
 			}
 			
 		}
