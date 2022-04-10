@@ -5,11 +5,14 @@ import java.util.Stack;
 import ontology.Types;
 import tools.Vector2d;
 
-public class Nodo {
+public class Nodo implements Comparable<Nodo>{
 	public Vector2d coordenadas; //Coordenadas 2d del nodo
 	public Types.ACTIONS accion_desde_padre; //Acción realizada desde el padre para llegar al nodo
 	public Nodo padre; //puntero al nodo padre
 	public double id; //Identificador único
+	public double f;
+	public double g;
+	public double h;
 	
 	/**
 	 * Constructor con parámetros
@@ -22,6 +25,9 @@ public class Nodo {
 		this.accion_desde_padre=accion;
 		this.padre=padre;
 		this.id=10000*this.coordenadas.x+coordenadas.y;
+		this.f=0;
+		this.g=0;
+		this.h=0;
 	}
 	/**
 	 * Constructor con parámetros
@@ -32,6 +38,9 @@ public class Nodo {
 		this.accion_desde_padre=Types.ACTIONS.ACTION_NIL;
 		this.padre=null;
 		this.id=10000*this.coordenadas.x+coordenadas.y;
+		this.f=0;
+		this.g=0;
+		this.h=0;
 	}
 	
 	/**
@@ -43,8 +52,41 @@ public class Nodo {
 		this.accion_desde_padre=n.accion_desde_padre;
 		this.padre=n.padre;
 		this.id=n.id;
+		this.f=n.f;
+		this.g=n.g;
+		this.h=n.h;
 	}
 	
+	//Constructores para A*
+	/**
+	 * Constructor con parámetros
+	 * @param n nodo del que vamos a hacer la copia
+	 */
+	public Nodo(Vector2d coordenadas,double g,double h) {
+		this.coordenadas=coordenadas;
+		this.accion_desde_padre=Types.ACTIONS.ACTION_NIL;
+		this.padre=null;
+		this.id=10000*this.coordenadas.x+coordenadas.y;
+		this.g=g;
+		this.h=h;
+		this.f=g+h;
+	}
+	
+	/**
+	 * Constructor con parámetros
+	 * @param coord coordenadas 2d
+	 * @param accion Acción realizada desde el padre
+	 * @param padre Nodo padre
+	 */
+	public Nodo(Vector2d coord, Types.ACTIONS accion, Nodo padre, double g, double h) {
+		this.coordenadas=coord;
+		this.accion_desde_padre=accion;
+		this.padre=padre;
+		this.id=10000*this.coordenadas.x+coordenadas.y;
+		this.f=g+h;
+		this.g=g;
+		this.h=h;
+	}
 	
 	
 	/**
@@ -72,5 +114,31 @@ public class Nodo {
 		}
 		return plan;
 	}
+	
+	
+	/**
+	 * Compara un nodo con otro con objeto de ordenarlos
+	 * @param n Nodo con el que comparar
+	 * @return devuelve 0 si son iguales, -1 si this es mayor y 1 en caso contrario
+	 */
+	@Override
+	public int compareTo(Nodo n) {
+			
+		if(this.f>=n.f) {
+			if(this.f>n.f)
+				return -1;
+			else if(this.g>n.g) {
+				return -1;
+			} else if(this.g==n.g){
+				return 1; //Si pongo 0 no mete los elementos en el set
+			}else {
+				return 1;
+			}
+		}
+		else
+			return 1;
+	
+	}
+	
 	
 }
