@@ -10,10 +10,9 @@ public class Nodo implements Comparable<Nodo>{
 	public Types.ACTIONS accion_desde_padre; //Acción realizada desde el padre para llegar al nodo
 	public Nodo padre; //puntero al nodo padre
 	public double id; //Identificador único
-	public double f;
+	public double f; //f=g+h Para algoritmos con heurísticas
 	public double g;
 	public double h;
-	
 	/**
 	 * Constructor con parámetros
 	 * @param coord coordenadas 2d
@@ -60,7 +59,9 @@ public class Nodo implements Comparable<Nodo>{
 	//Constructores para A*
 	/**
 	 * Constructor con parámetros
-	 * @param n nodo del que vamos a hacer la copia
+	 * @param coordenadas coordenadas del nodo
+	 * @param g valor de la g del nodo
+	 * @param h valor de la h del nodo
 	 */
 	public Nodo(Vector2d coordenadas,double g,double h) {
 		this.coordenadas=coordenadas;
@@ -77,6 +78,8 @@ public class Nodo implements Comparable<Nodo>{
 	 * @param coord coordenadas 2d
 	 * @param accion Acción realizada desde el padre
 	 * @param padre Nodo padre
+	 * @param g valor de g(n)
+	 * @param h valor de h(n)
 	 */
 	public Nodo(Vector2d coord, Types.ACTIONS accion, Nodo padre, double g, double h) {
 		this.coordenadas=coord;
@@ -94,9 +97,11 @@ public class Nodo implements Comparable<Nodo>{
 	 * @param n nodo con el que comparar
 	 * @return true si sus id coinciden y false en otro caso
 	 */
-	public Boolean equals(Nodo n) {
-		if(this.id==n.id)
+	@Override
+	public boolean equals(Object n) {
+		if(this.id==((Nodo)n).id) {
 			return true;
+		}
 		else
 			return false;
 	}
@@ -107,7 +112,7 @@ public class Nodo implements Comparable<Nodo>{
 	 */
 	public Stack<Types.ACTIONS> calculaCamino(){
 		Stack<Types.ACTIONS> plan= new Stack<>();
-		Nodo actual=this.padre;
+		Nodo actual=this;
 		while(actual.padre!=null) {
 			plan.add(actual.accion_desde_padre);
 			actual=actual.padre;
@@ -119,26 +124,51 @@ public class Nodo implements Comparable<Nodo>{
 	/**
 	 * Compara un nodo con otro con objeto de ordenarlos
 	 * @param n Nodo con el que comparar
-	 * @return devuelve 0 si son iguales, -1 si this es mayor y 1 en caso contrario
+	 * @return devuelve 0 si son iguales, -1 si this es de mayor prioridad y 1 en caso contrario
 	 */
 	@Override
 	public int compareTo(Nodo n) {
-			
 		if(this.f>=n.f) {
 			if(this.f>n.f)
-				return -1;
-			else if(this.g>n.g) {
-				return -1;
-			} else if(this.g==n.g){
-				return 1; //Si pongo 0 no mete los elementos en el set
-			}else {
 				return 1;
+			else if(this.g>n.g) {
+				return 1;
+			} else if(this.g==n.g){
+				return comprobarAcciones(n);
+			}else {
+				return -1;
 			}
 		}
 		else
-			return 1;
-	
+			return -1;
 	}
 	
-	
+	/**
+	 * Función para ordenar si empatan dos nodos en f y g
+	 * @param n nodo con el que comparar
+	 * @return 
+	 */
+	private int comprobarAcciones(Nodo n) {
+		
+		if(this.accion_desde_padre==n.accion_desde_padre) {
+			return 0;
+		} else if(this.accion_desde_padre==Types.ACTIONS.ACTION_UP) {
+			return -1;
+		} else if(n.accion_desde_padre==Types.ACTIONS.ACTION_UP) {
+			return 1;
+		}else if(this.accion_desde_padre==Types.ACTIONS.ACTION_DOWN) {
+			return -1;
+		} else if(n.accion_desde_padre==Types.ACTIONS.ACTION_DOWN) {
+			return 1;
+		}else if(this.accion_desde_padre==Types.ACTIONS.ACTION_LEFT) {
+			return -1;
+		} else if(n.accion_desde_padre==Types.ACTIONS.ACTION_LEFT) {
+			return 1;
+		}else if(this.accion_desde_padre==Types.ACTIONS.ACTION_RIGHT) {
+			return -1;
+		} else if(n.accion_desde_padre==Types.ACTIONS.ACTION_RIGHT) {
+			return 1;
+		}
+		return 0;
+	}
 }

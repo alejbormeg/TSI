@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.SortedSet;
 import java.util.Stack;
@@ -90,86 +91,130 @@ public class AgenteAStar extends AbstractPlayer {
         	num_llamadas++;
         	ASTAR(avatar,portal,muros_y_pinchos,stateObs);
     		return plan.pop();
-        }else {
+        }else if (!plan.isEmpty()){
     		return plan.pop();
-        }
+        }else
+        	return Types.ACTIONS.ACTION_ESCAPE;
         
 		
 	}
 	
-	
+	/**
+	 * Algoritmo A*, calcula la ruta a seguir por el avatar y lo almacena en la pila plan
+	 * @param nodo_inicial nodo de partida (pos inicial del avatar)
+	 * @param nodo_objetivo nodo objetivo (portal)
+	 * @param muros Tabla hash con los muros y pinchos del mapa
+	 * @param stateObs Para acceder a información del mapa
+	 */
 	public void ASTAR(Nodo nodo_inicial, Nodo nodo_objetivo,Hashtable<Double,Boolean> muros, StateObservation stateObs) {
-		TreeSet<Nodo> abiertos=new TreeSet<Nodo>(); //TODO Si algo falla revisar esto
-		Hashtable<Double,Double> cerrados= new Hashtable<Double,Double>(); //Nodos ya visitados (pareja id-f)
-		abiertos.add(nodo_inicial);
-		Nodo nodo_actual;
+		//Para mantener una lista de nodos ordenados por la f usaremos una cola con prioridad
+		PriorityQueue<Nodo> abiertos= new PriorityQueue<Nodo>();
+		//Para los accesos y actualizaciones a abiertos usaremos una tabla Hash
+		Hashtable<Double,Double> abiertos_auxiliar= new Hashtable<Double,Double>(); 
+
+		//los cerrados los metemos también en una tabla hash
+		Hashtable<Double,Double> cerrados= new Hashtable<Double,Double>(); 
 		
+		//ntroducimos el nodo inicial en la tabla hash y cola de abiertos
+		abiertos.add(nodo_inicial);
+		abiertos_auxiliar.put(nodo_inicial.id, nodo_inicial.g);
+		
+		//Variables que usaremos en el algoritmo
+		Nodo nodo_actual; //Para iterar sobre la cola de abiertos
+		int nodos_expandidos=0; //Contador de nodos expandidos 
+		int memoria_max=0; //Contador de nodos en memoria máxima
+		int memoria=0;
+		
+		//Comienza el algoritmo
 		while (true) {
-			nodo_actual=abiertos.first();
+			nodo_actual=abiertos.poll(); //tomamos el elemento de la cola con menor f
+			
+			//Comprobamos si el valor de g que tiene la cola está actualizado con el de la tabla hash
+			if(!esNodoCorrecto(nodo_actual,abiertos_auxiliar,abiertos)) {
+				// Si no estaba actualizado lo actualizamos y pasamos al siguiente en abiertos
+				break;
+			}
+			
+			//eliminamos el nodo de la tanbla hash
+			abiertos_auxiliar.remove(nodo_actual.id);
+			nodos_expandidos++;
+
 			if (nodo_actual.equals(nodo_objetivo)) {
 				avatar.padre=null;
 				break;
 			}
-			abiertos.pollFirst();
 			
-			for(Nodo sucesor: calculaSucesores(nodo_actual,muros,stateObs,nodo_objetivo)) {
+			//Calculamos los sucesores e iteramos sobre ellos
+			for(Nodo sucesor:calculaSucesores(nodo_actual,muros,stateObs,nodo_objetivo)) {
+				//Primero nos aseguramos de que el nodo abuelo no coincida con el sucesor
 				if (!sucesor.equals(nodo_actual.padre)) { 
-					if (cerrados.containsKey(sucesor.id) && cerrados.get(sucesor.id)<sucesor.f) {
+					//Si el sucesor estaba en cerrados pero mejora su g lo rescatamos 
+					if (cerrados.containsKey(sucesor.id) && cerrados.get(sucesor.id)>sucesor.g) {
 						cerrados.remove(sucesor.id);
 						abiertos.add(sucesor);
-					}else if (!cerrados.containsKey(sucesor.id) && !estaEnAbiertos(sucesor,abiertos)) {
+						abiertos_auxiliar.put(sucesor.id, sucesor.g);
+					//Si no estaba en cerrados ni en abiertos lo metemos en abiertos
+					}else if (!cerrados.containsKey(sucesor.id) && !abiertos_auxiliar.containsKey(sucesor.id)) {
 						abiertos.add(sucesor);
-					}else if (estaEnAbiertos(sucesor,abiertos)) { // se implementa igual que en el pseudocódigo, epro para evitar repetir operaciones se hace diferente
-					mejoraCamino(sucesor,abiertos);
+						abiertos_auxiliar.put(sucesor.id,sucesor.g);
+					//Si estaba en abiertos pero mejoramos su g actual la cambiamos
+					}else if (abiertos_auxiliar.containsKey(sucesor.id) && abiertos_auxiliar.get(sucesor.id)>sucesor.g) { // se implementa igual que en el pseudocódigo, epro para evitar repetir operaciones se hace diferente
+						abiertos_auxiliar.replace(sucesor.id, abiertos_auxiliar.get(sucesor.id), sucesor.g);
 					}
 				}
 				
 			}
-			cerrados.put(nodo_actual.id,nodo_actual.f);
 			
+			//Metemos el nodo expandido en cerrados
+			cerrados.put(nodo_actual.id,nodo_actual.g);
+			
+			//Comprobamos si alcanzamos un maximo en nodos en memoria
+			memoria=cerrados.size()+abiertos_auxiliar.size();
+			if(memoria>memoria_max) {
+				memoria_max=memoria;
+			}
+
 		}
+		System.out.println("Total de nodos expandidos: "+nodos_expandidos);
+		System.out.print("Consumo en memoria: ");
+		System.out.print(memoria_max);
+		System.out.println();
 
 		plan=nodo_actual.calculaCamino();
-		
 	}
 	
-	/**
-	 * Comprueba si el camino desde inicio a sucesor es mejor que que había en abiertos
-	 * @param sucesor
-	 * @param abiertos
-	 * @return true si mejora y false en caso contrario
-	 */
-	private void mejoraCamino(Nodo sucesor, TreeSet<Nodo> abiertos) {
-		
-		for(Nodo n: abiertos) {
-			//Si está en abiertos y mejora camino actualizamos
-			if(n.equals(sucesor)&& n.f>sucesor.f) {
-				n.g=sucesor.g;
-			}
-		}
-	}
 
 	/**
-	 * Mira si un nodo está en la lista de abiertos
-	 * @param sucesor nodo a comprobar
-	 * @param abiertos conjunto de abiertos
-	 * @return true si está y false en caso contrario
+	 * Comprueba si el nodo que sacamos de abiertos coincide en la g con el nodo correspondiente en la tabla hash auxiliar
+	 * @param abiertos cola con prioridad actual de abiertos
+	 * @param nodo_actual Nodo que queremos sacar de abiertos
+	 * @param abiertos_auxiliar Tabla Hash con las g actualizadas
+	 * @return true si es correcto y false si no
 	 */
-	private boolean estaEnAbiertos(Nodo sucesor, TreeSet<Nodo> abiertos) {		
-		for(Nodo n: abiertos) {
-			if(n.id==sucesor.id) {
-				return true;
-			}
+	private boolean esNodoCorrecto(Nodo nodo_actual, Hashtable<Double, Double> abiertos_auxiliar, PriorityQueue<Nodo> abiertos){
+		if (abiertos_auxiliar.get(nodo_actual.id)!=nodo_actual.g) {
+			System.out.println("g del nodo actual: "+ nodo_actual.g + " g de la tabla hash: "+abiertos_auxiliar.get(nodo_actual.id));
 		}
-		return false;
+		
+		if(!abiertos_auxiliar.containsKey(nodo_actual.id))
+			return false;
+		else if (abiertos_auxiliar.get(nodo_actual.id)==nodo_actual.g)
+			return true;
+		else {
+			nodo_actual.g=abiertos_auxiliar.get(nodo_actual.id);
+			nodo_actual.f=nodo_actual.h+nodo_actual.g;
+			abiertos.add(nodo_actual); //Lo colocamos en su lugar correspondiente en la cola ordenada
+			return false;
+		}
+		
 	}
 
 	/**
 	 * Funcion para calcular los sucesores.
 	 * @param nodo Nodo del que partimos para construir el plan.
 	 * @param muros Array con los objetos inmóviles del mapa.
-	 * @param cola es la cola dónde tenemos los abiertos actuales.
 	 * @param stateObs Observation of the current state.
+	 * @param objetivo Nodo objetivo
 	 * @return array con los sucesores expandidos.
 	 */
 	public ArrayList<Nodo> calculaSucesores(Nodo nodo,Hashtable<Double,Boolean> muros, StateObservation stateObs, Nodo objetivo) {
@@ -177,6 +222,7 @@ public class AgenteAStar extends AbstractPlayer {
 		Nodo sucesor;
 		//Probamos las cuatro acciones y calculamos la distancia del nuevo estado al portal.
         Vector2d newPos_up, newPos_down, newPos_left, newPos_right;
+        
         if (nodo.coordenadas.y - 1 >= 0) {
         	newPos_up = new Vector2d(nodo.coordenadas.x, nodo.coordenadas.y-1);	        	
         	sucesor=new Nodo(newPos_up,Types.ACTIONS.ACTION_UP,nodo,nodo.g+1,Manhattan(newPos_up,objetivo.coordenadas));
@@ -189,19 +235,23 @@ public class AgenteAStar extends AbstractPlayer {
         	sucesor=new Nodo(newPos_down,Types.ACTIONS.ACTION_DOWN,nodo,nodo.g+1,Manhattan(newPos_down,objetivo.coordenadas));
         	if(!muros.containsKey(sucesor.id))
         		sucesores.add(sucesor);
-        	
+        	        	
         }
         if (nodo.coordenadas.x - 1 >= 0) {
         	newPos_left = new Vector2d(nodo.coordenadas.x - 1, nodo.coordenadas.y);
         	sucesor=new Nodo(newPos_left,Types.ACTIONS.ACTION_LEFT,nodo,nodo.g+1,Manhattan(newPos_left,objetivo.coordenadas));
+
         	if(!muros.containsKey(sucesor.id))
         		sucesores.add(sucesor);
+        	
         }
         if (nodo.coordenadas.x + 1 <= stateObs.getObservationGrid().length - 1) {
         	newPos_right = new Vector2d(nodo.coordenadas.x + 1, nodo.coordenadas.y);
         	sucesor=new Nodo(newPos_right,Types.ACTIONS.ACTION_RIGHT,nodo,nodo.g+1,Manhattan(newPos_right,objetivo.coordenadas));
+
         	if(!muros.containsKey(sucesor.id))
         		sucesores.add(sucesor);
+        	
         }		 		
 		return sucesores;
 	}

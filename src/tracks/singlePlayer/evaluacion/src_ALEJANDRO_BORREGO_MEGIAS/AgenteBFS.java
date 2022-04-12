@@ -24,8 +24,7 @@ public class AgenteBFS extends AbstractPlayer{
 	private Stack<Types.ACTIONS> plan = new Stack<Types.ACTIONS>();
 	
 	//ArrayList con los muros y pinchos en el mapa
-	private ArrayList<Nodo> muros_y_pinchos = new ArrayList<>();
-	
+	private Hashtable<Double,Boolean> muros_y_pinchos= new Hashtable<Double,Boolean>();	
 	//Contador de las llamadas al método act
 	int num_llamadas=0;
 	
@@ -52,16 +51,16 @@ public class AgenteBFS extends AbstractPlayer{
         // Definimos el nodo objetivo
         portal = new Nodo(portal_coordenadas);
 
-        //Obtenemos las posiciones de los muros y pinchos
+      //Obtenemos las posiciones de los muros y pinchos
         ArrayList<Observation>[] obstaculos = stateObs.getImmovablePositions();
         for (int i = 0; i < obstaculos[0].size(); i++){
             //Obtenemos la posición de cada uno
-            muros_y_pinchos.add( new Nodo(new Vector2d(Math.floor(obstaculos[0].get(i).position.x / fescala.x), Math.floor(obstaculos[0].get(i).position.y / fescala.y))));
+            muros_y_pinchos.put( new Nodo(new Vector2d(Math.floor(obstaculos[0].get(i).position.x / fescala.x), Math.floor(obstaculos[0].get(i).position.y / fescala.y))).id,true);
         }
         
         for (int i = 0; i < obstaculos[1].size(); i++){
             //Obtenemos la posición de cada uno
-            muros_y_pinchos.add( new Nodo(new Vector2d(Math.floor(obstaculos[1].get(i).position.x / fescala.x), Math.floor(obstaculos[1].get(i).position.y / fescala.y))));
+            muros_y_pinchos.put( new Nodo(new Vector2d(Math.floor(obstaculos[1].get(i).position.x / fescala.x), Math.floor(obstaculos[1].get(i).position.y / fescala.y))).id,true);
         }
         
       //Posicion del avatar en coordenadas
@@ -101,7 +100,7 @@ public class AgenteBFS extends AbstractPlayer{
 	 * @param stateObs Observation of the current state.
 	 * @return pila con el plan a seguir por el agente.
 	 */
-	public Stack<Types.ACTIONS> planBFS(Nodo nodo_inicio, Nodo nodo_final, ArrayList<Nodo> muros,StateObservation stateObs){
+	public Stack<Types.ACTIONS> planBFS(Nodo nodo_inicio, Nodo nodo_final,  Hashtable<Double,Boolean> muros,StateObservation stateObs){
 		Nodo nodo_actual;
 		Stack<Types.ACTIONS> plan= new Stack<Types.ACTIONS>();
 		Hashtable<Double,Boolean> estado= new Hashtable<Double,Boolean>();
@@ -135,6 +134,7 @@ public class AgenteBFS extends AbstractPlayer{
 			
 		}
 		
+		System.out.println("Voy a salirme de la funcion");
 		return plan;	
 	}
 	
@@ -146,7 +146,7 @@ public class AgenteBFS extends AbstractPlayer{
 	 * @param stateObs Observation of the current state.
 	 * @return array con los sucesores expandidos.
 	 */
-	public ArrayList<Nodo> calculaSucesores(Nodo nodo,ArrayList<Nodo> muros, StateObservation stateObs) {
+	public ArrayList<Nodo> calculaSucesores(Nodo nodo, Hashtable<Double,Boolean> muros, StateObservation stateObs) {
 		ArrayList<Nodo> sucesores= new ArrayList<>();
 		Nodo sucesor;
 		//Probamos las cuatro acciones y calculamos la distancia del nuevo estado al portal.
@@ -203,12 +203,11 @@ public class AgenteBFS extends AbstractPlayer{
 	 * @param objetos ArrayList con los muros y pinchos
 	 * @return devuelve true si es un nodo visitado y false si no
 	 */
-	private boolean esMuro(Nodo sucesor, ArrayList<Nodo> objetos) {	
-		for (int i=0; i<objetos.size();i++) {
-			if(objetos.get(i).equals(sucesor))
-				return true;
-		}
-		return false;
+	private boolean esMuro(Nodo sucesor, Hashtable<Double,Boolean> objetos) {	
+		if(objetos.containsKey(sucesor.id))	
+			return true;
+		else
+			return false;
 	}
 
 }

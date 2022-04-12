@@ -97,18 +97,15 @@ public class AgenteDFS extends AbstractPlayer {
 		Hashtable<Double,Boolean> estado= new Hashtable<Double,Boolean>();
 		//Marcamos el nodo inicial como visitado
 		estado.put(inicial.id, true);
-		System.out.println("Voy a llamar a DFS_search");
 		DFS_search(inicial,objetivo,muros,stateObs,estado);
 	}
 	
 	public Boolean DFS_search(Nodo u, Nodo objetivo,ArrayList<Nodo> muros,StateObservation stateObs,Hashtable<Double,Boolean> estado){
 		ArrayList<Nodo> sucesores= new ArrayList<>();
-		System.out.println("He entrado en la función DFS_search");
 		if(u.equals(objetivo)){
 			System.out.println("calculamos el plan");
 			plan=u.calculaCamino();
 			System.out.println(plan.size());
-			System.out.println("Hemos acabado de calcular el plan");
 
 			return true;
 		}
