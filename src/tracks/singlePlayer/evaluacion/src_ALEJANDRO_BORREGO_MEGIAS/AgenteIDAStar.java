@@ -184,7 +184,7 @@ public class AgenteIDAStar extends AbstractPlayer{
 	 * @param stateObs Observation of the current state.
 	 * @param objetivo Nodo objetivo
 	 * 
-	 * @return array con los sucesores expandidos.
+	 * @return Lista con prioridad de los sucesores expandidos.
 	 */
 	public PriorityQueue<Nodo> calculaSucesores(Nodo nodo,Hashtable<Double,Boolean> muros, StateObservation stateObs, Nodo objetivo) {
 		PriorityQueue<Nodo> sucesores= new PriorityQueue<>();

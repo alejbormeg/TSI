@@ -2,7 +2,6 @@ package tracks.singlePlayer.evaluacion.src_ALEJANDRO_BORREGO_MEGIAS;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Stack;
@@ -27,7 +26,8 @@ public class AgenteBFS extends AbstractPlayer{
 	private Hashtable<Double,Boolean> muros_y_pinchos= new Hashtable<Double,Boolean>();	
 	//Contador de las llamadas al método act
 	int num_llamadas=0;
-	
+	int num_nodos_expandidos=0;
+	int memoria=0;
 	//Nodo inicial y final
 	Nodo avatar,portal;
 	
@@ -78,11 +78,22 @@ public class AgenteBFS extends AbstractPlayer{
 	 */
 	@Override
 	public ACTIONS act(StateObservation stateObs, ElapsedCpuTimer elapsedTimer) {
-
+		double runtime=0.0;
+		int tam_plan=0;
         if(num_llamadas==0) {
+    		long tInicio = System.nanoTime();
         	//Llamamos al plan con la información del lugar dónde se encuentran los muros
         	plan=planBFS(avatar,portal,muros_y_pinchos,stateObs);
+    		long tFin = System.nanoTime();
+    		runtime += (double)((tFin - tInicio))/1000000;
+    		tam_plan=plan.size();
         	num_llamadas++;
+        	
+        	System.out.println("Runtime: "+runtime);
+        	System.out.println("Route size: "+tam_plan);
+        	System.out.println("Expanded nodes: "+num_nodos_expandidos);
+        	System.out.println("Memory: "+memoria);
+
     		return plan.pop();
         }else {
     		return plan.pop();
@@ -115,10 +126,12 @@ public class AgenteBFS extends AbstractPlayer{
 		while(!cola.isEmpty()){
 			nodo_actual=cola.peek();
 			cola.remove();
-			
+			num_nodos_expandidos++;
 			if(nodo_actual.coordenadas.equals(nodo_final.coordenadas)){
 				System.out.println("calculamos el plan");
-				return nodo_actual.calculaCamino();
+				plan=nodo_actual.calculaCamino();
+				memoria=plan.size();
+				return plan;
 			}
 			
 			sucesores=calculaSucesores(nodo_actual,muros,stateObs);
@@ -178,22 +191,6 @@ public class AgenteBFS extends AbstractPlayer{
         		sucesores.add(sucesor);
         }		 		
 		return sucesores;
-	}
-
-	/**
-	 * Devuelve si un nodo ha sido o no visitado
-	 * @param nodo nodo expandido
-	 * @param cola es la cola dónde tenemos los abiertos actuales 
-	 * @return devuelve true si es un nodo visitado y false si no
-	 */
-	private boolean estaVisitado(Nodo sucesor, Queue<Nodo> cola) {
-	    Iterator iterator = cola.iterator();
-	    
-		for(Nodo i : cola) {
-			if(i.equals(sucesor))
-				return true;
-		}
-		return false;
 	}
 
 	//TODO-Meter los muros en una Tabla Hash

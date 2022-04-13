@@ -1,0 +1,25 @@
+algorith,map,runtime,routeSize,expandedNodes,memory
+BFS, Muy Pequeño,1,15,96,97
+BFS, Pequeño,2,34,130,131
+BFS, Mediano,11,110,846,846
+BFS, Grande,17,209,4630,4633
+,,,,,
+DFS, Muy Pequeño,2,27,71,71
+DFS, Pequeño,5,64,81,81
+DFS, Mediano,8,238,402,402
+DFS, Grande,11,935,1213,1213
+,,,,,
+AStar, Muy Pequeño,2,15,40,57
+AStar, Pequeño,3,34,86,104
+AStar, Mediano,11,110,717,735
+AStar, Grande,19,209,3607,3702
+,,,,,
+IDAStar, Muy Pequeño,4,15,122,15
+IDAStar, Pequeño,14,34,423,34
+IDAStar, Mediano,433,110,484625,110
+IDAStar, Grande, Fail, Fail, Fail, Fail
+,,,,,
+RTAStar, Muy Pequeño,"3,123",53,53,37
+RTAStar, Pequeño,"2,199",38,38,36
+RTAStar, Mediano,"32,58",1594,1594,544
+RTAStar, Grande,"22,895",1567,1567,513
