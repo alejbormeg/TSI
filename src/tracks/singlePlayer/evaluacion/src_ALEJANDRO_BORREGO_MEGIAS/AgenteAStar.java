@@ -215,6 +215,7 @@ public class AgenteAStar extends AbstractPlayer {
 	 * @param muros Array con los objetos inmóviles del mapa.
 	 * @param stateObs Observation of the current state.
 	 * @param objetivo Nodo objetivo
+	 * 
 	 * @return array con los sucesores expandidos.
 	 */
 	public ArrayList<Nodo> calculaSucesores(Nodo nodo,Hashtable<Double,Boolean> muros, StateObservation stateObs, Nodo objetivo) {
