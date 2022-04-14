@@ -1,4 +1,4 @@
-package tracks.singlePlayer.evaluacion.src_ALEJANDRO_BORREGO_MEGIAS;
+package tracks.singlePlayer.evaluacion.src_BORREGO_MEGIAS_ALEJANDRO;
 
 import java.util.Stack;
 
@@ -9,7 +9,7 @@ public class Nodo implements Comparable<Nodo>{
 	public Vector2d coordenadas; //Coordenadas 2d del nodo
 	public Types.ACTIONS accion_desde_padre; //Acción realizada desde el padre para llegar al nodo
 	public Nodo padre; //puntero al nodo padre
-	public double id; //Identificador único
+	public double id; //Identificador único, representa las coordenadas x e y en un mismo número separadas por ceros
 	public double f; //f=g+h Para algoritmos con heurísticas
 	public double g;
 	public double h;

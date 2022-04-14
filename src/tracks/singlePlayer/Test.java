@@ -27,15 +27,15 @@ public class Test {
 		String sampleCamelController = "tracks.singlePlayer.myController.myAgent_Camel";
 		
 		//Agente BFS
-		String sampleBFSController="tracks.singlePlayer.evaluacion.src_ALEJANDRO_BORREGO_MEGIAS.AgenteBFS";
+		String sampleBFSController="tracks.singlePlayer.evaluacion.src_BORREGO_MEGIAS_ALEJANDRO.AgenteBFS";
 		//Agente DFS
-		String sampleDFSController="tracks.singlePlayer.evaluacion.src_ALEJANDRO_BORREGO_MEGIAS.AgenteDFS";
+		String sampleDFSController="tracks.singlePlayer.evaluacion.src_BORREGO_MEGIAS_ALEJANDRO.AgenteDFS";
 		//Agente ASTAR
-		String sampleASTARController="tracks.singlePlayer.evaluacion.src_ALEJANDRO_BORREGO_MEGIAS.AgenteAStar";
+		String sampleASTARController="tracks.singlePlayer.evaluacion.src_BORREGO_MEGIAS_ALEJANDRO.AgenteAStar";
 		//Agente IDASTAR
-		String sampleIDAController="tracks.singlePlayer.evaluacion.src_ALEJANDRO_BORREGO_MEGIAS.AgenteIDAStar";
+		String sampleIDAController="tracks.singlePlayer.evaluacion.src_BORREGO_MEGIAS_ALEJANDRO.AgenteIDAStar";
 		//Agente RTASTAR
-		String sampleRTAController="tracks.singlePlayer.evaluacion.src_ALEJANDRO_BORREGO_MEGIAS.AgenteRTAStar";
+		String sampleRTAController="tracks.singlePlayer.evaluacion.src_BORREGO_MEGIAS_ALEJANDRO.AgenteRTAStar";
 
 
 		//Load available games
@@ -61,7 +61,7 @@ public class Test {
 		//ArcadeMachine.playOneGame(game, level1, recordActionsFile, seed);
 
 		// 2. This plays a game in a level by the controller.
-		ArcadeMachine.runOneGame(game, level1, visuals, sampleBFSController, recordActionsFile, seed, 0);
+		ArcadeMachine.runOneGame(game, level1, visuals, sampleRTAController, recordActionsFile, seed, 0);
 
 
 		// 3. This replays a game from an action file previously recorded

@@ -1,16 +1,11 @@
-package tracks.singlePlayer.evaluacion.src_ALEJANDRO_BORREGO_MEGIAS;
+package tracks.singlePlayer.evaluacion.src_BORREGO_MEGIAS_ALEJANDRO;
 
 import core.player.AbstractPlayer;
 import java.util.ArrayList;
 import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
-import java.util.Queue;
-import java.util.SortedSet;
 import java.util.Stack;
-import java.util.TreeSet;
-
 import core.game.Observation;
 import core.game.StateObservation;
 import core.player.AbstractPlayer;
@@ -18,21 +13,22 @@ import ontology.Types;
 import ontology.Types.ACTIONS;
 import tools.ElapsedCpuTimer;
 import tools.Vector2d;
-import tracks.singlePlayer.evaluacion.src_ALEJANDRO_BORREGO_MEGIAS.Nodo;
+import tracks.singlePlayer.evaluacion.src_BORREGO_MEGIAS_ALEJANDRO.Nodo;
 
-public class AgenteAStar extends AbstractPlayer {	
+public class AgenteIDAStar extends AbstractPlayer{
 	Vector2d fescala;
 	Vector2d portal_coordenadas;
 	
-	//ArrayList con el plan a seguir
+	//Pila con el plan a seguir
 	private Stack<Types.ACTIONS> plan = new Stack<Types.ACTIONS>();
 	
-	//ArrayList con los muros y pinchos en el mapa
+	//Tabla hash con los muros y pinchos en el mapa, usamos esta estructura para acceder en tiempo constante a si una casilla es muro o pincho
 	Hashtable<Double,Boolean> muros_y_pinchos= new Hashtable<Double,Boolean>();
 	
 	//Contador de las llamadas al método act
 	int num_llamadas=0;
-	
+	int nodos_expandidos=0; //Contador de nodos expandidos 
+
 	//Nodo inicial y final
 	Nodo avatar,portal;
 	
@@ -41,7 +37,7 @@ public class AgenteAStar extends AbstractPlayer {
 	 * @param stateObs Observation of the current state.
      * @param elapsedTimer Timer when the action returned is due.
 	 */
-	public AgenteAStar(StateObservation stateObs, ElapsedCpuTimer elapsedTimer){
+	public AgenteIDAStar(StateObservation stateObs, ElapsedCpuTimer elapsedTimer){
 		//Calculamos el factor de escala entre mundos (pixeles -> grid)
         fescala = new Vector2d(stateObs.getWorldDimension().width / stateObs.getObservationGrid().length , 
         		stateObs.getWorldDimension().height / stateObs.getObservationGrid()[0].length);      
@@ -74,7 +70,6 @@ public class AgenteAStar extends AbstractPlayer {
       //Pareja, posición/estado del avatar
         
         avatar=new Nodo(pos_avatar,0,Manhattan(pos_avatar,portal.coordenadas));
-        avatar.padre=avatar;
 	}
 
 	/**
@@ -85,129 +80,121 @@ public class AgenteAStar extends AbstractPlayer {
 	 */
 	@Override
 	public ACTIONS act(StateObservation stateObs, ElapsedCpuTimer elapsedTimer) {
-
+		//Si es la primera vez que se llama a act calculamos el plan
         if(num_llamadas==0) {
         	//Llamamos al plan con la información del lugar dónde se encuentran los muros
         	num_llamadas++;
-        	ASTAR(avatar,portal,muros_y_pinchos,stateObs);
+    		long tInicio = System.nanoTime();
+        	plan=IDASTAR(avatar,portal,muros_y_pinchos,stateObs);
+    		long tFin = System.nanoTime();
+    		//calculamos tiempo de ejecución
+    		double runtime = (double)((tFin - tInicio))/1000000;
+    		//Calculamos el tamaño del plan
+    		int tam_plan = plan.size();
+    		
+    		//Mostramos los valores para rellenar la tabla
+        	System.out.println("Runtime: "+runtime);
+        	System.out.println("Route size: "+tam_plan);
+        	System.out.println("Expanded nodes: "+nodos_expandidos);
+        	System.out.println("Memory: "+tam_plan); //En este algoritmo el consumo en memoria coincide con el tamaño del plan
     		return plan.pop();
-        }else if (!plan.isEmpty()){
+        }else //Si no es la primera vez se devuelve la siguiente instrucción en el plan
     		return plan.pop();
-        }else
-        	return Types.ACTIONS.ACTION_ESCAPE;
         
 		
 	}
 	
 	/**
-	 * Algoritmo A*, calcula la ruta a seguir por el avatar y lo almacena en la pila plan
+	 * Algoritmo IDA*, calcula la ruta a seguir por el avatar y lo almacena en la pila plan
 	 * @param nodo_inicial nodo de partida (pos inicial del avatar)
 	 * @param nodo_objetivo nodo objetivo (portal)
 	 * @param muros Tabla hash con los muros y pinchos del mapa
 	 * @param stateObs Para acceder a información del mapa
 	 */
-	public void ASTAR(Nodo nodo_inicial, Nodo nodo_objetivo,Hashtable<Double,Boolean> muros, StateObservation stateObs) {
-		//Para mantener una lista de nodos ordenados por la f usaremos una cola con prioridad
-		PriorityQueue<Nodo> abiertos= new PriorityQueue<Nodo>();
-		//Para los accesos y actualizaciones a abiertos usaremos una tabla Hash
-		Hashtable<Double,Double> abiertos_auxiliar= new Hashtable<Double,Double>(); 
-
-		//los cerrados los metemos también en una tabla hash
-		Hashtable<Double,Double> cerrados= new Hashtable<Double,Double>(); 
+	public Stack<Types.ACTIONS> IDASTAR(Nodo nodo_inicial, Nodo nodo_objetivo,Hashtable<Double,Boolean> muros, StateObservation stateObs) {
+		//Pila con las acciones que tendrá que realizar el agente
+		Stack<Types.ACTIONS> acciones=new Stack<>();
+		int cota=(int) nodo_inicial.h; //Cota inicial
+		int t;
 		
-		//ntroducimos el nodo inicial en la tabla hash y cola de abiertos
-		abiertos.add(nodo_inicial);
-		abiertos_auxiliar.put(nodo_inicial.id, nodo_inicial.g);
-		
-		//Variables que usaremos en el algoritmo
-		Nodo nodo_actual; //Para iterar sobre la cola de abiertos
-		int nodos_expandidos=0; //Contador de nodos expandidos 
-		int memoria_max=0; //Contador de nodos en memoria máxima
-		int memoria=0;
+		//Ruta de nodos desde el actual hasta el final, la elegimos como lista enlazada para insertar y consultar elementos por el final o principio según convenga
+		LinkedList<Nodo>ruta=new LinkedList <>();
+		ruta.addFirst(nodo_inicial);
 		
 		//Comienza el algoritmo
 		while (true) {
-			nodo_actual=abiertos.poll(); //tomamos el elemento de la cola con menor f
-			
-			//Comprobamos si el valor de g que tiene la cola está actualizado con el de la tabla hash
-			if(!esNodoCorrecto(nodo_actual,abiertos_auxiliar,abiertos)) {
-				// Si no estaba actualizado lo actualizamos y pasamos al siguiente en abiertos
-				break;
-			}
-			
-			//eliminamos el nodo de la tanbla hash
-			abiertos_auxiliar.remove(nodo_actual.id);
-			nodos_expandidos++;
-
-			if (nodo_actual.equals(nodo_objetivo)) {
-				avatar.padre=null;
-				break;
-			}
-			
-			//Calculamos los sucesores e iteramos sobre ellos
-			for(Nodo sucesor:calculaSucesores(nodo_actual,muros,stateObs,nodo_objetivo)) {
-				//Primero nos aseguramos de que el nodo abuelo no coincida con el sucesor
-				if (!sucesor.equals(nodo_actual.padre)) { 
-					//Si el sucesor estaba en cerrados pero mejora su g lo rescatamos 
-					if (cerrados.containsKey(sucesor.id) && cerrados.get(sucesor.id)>sucesor.g) {
-						cerrados.remove(sucesor.id);
-						abiertos.add(sucesor);
-						abiertos_auxiliar.put(sucesor.id, sucesor.g);
-					//Si no estaba en cerrados ni en abiertos lo metemos en abiertos
-					}else if (!cerrados.containsKey(sucesor.id) && !abiertos_auxiliar.containsKey(sucesor.id)) {
-						abiertos.add(sucesor);
-						abiertos_auxiliar.put(sucesor.id,sucesor.g);
-					//Si estaba en abiertos pero mejoramos su g actual la cambiamos
-					}else if (abiertos_auxiliar.containsKey(sucesor.id) && abiertos_auxiliar.get(sucesor.id)>sucesor.g) { // se implementa igual que en el pseudocódigo, epro para evitar repetir operaciones se hace diferente
-						abiertos_auxiliar.replace(sucesor.id, abiertos_auxiliar.get(sucesor.id), sucesor.g);
-					}
-				}
-				
-			}
-			
-			//Metemos el nodo expandido en cerrados
-			cerrados.put(nodo_actual.id,nodo_actual.g);
-			
-			//Comprobamos si alcanzamos un maximo en nodos en memoria
-			memoria=cerrados.size()+abiertos_auxiliar.size();
-			if(memoria>memoria_max) {
-				memoria_max=memoria;
-			}
-
+			//Buscamos ruta
+			t=search(ruta,0,cota,nodo_objetivo,muros,stateObs);	
+			if(t==-1) { //Si devuelve -1 es que hemos encontrado el objetivo
+				acciones=ruta.getLast().calculaCamino();
+				return acciones;
+			}	
+			if(t==Integer.MAX_VALUE) { // si devuelve infinito no se ha encontrado plan
+				acciones.add(Types.ACTIONS.ACTION_NIL);
+				return acciones;
+			}	
+			cota=t; //Actualizamos la profundidad máxima
 		}
-		System.out.println("Total de nodos expandidos: "+nodos_expandidos);
-		System.out.print("Consumo en memoria: ");
-		System.out.print(memoria_max);
-		System.out.println();
 
-		plan=nodo_actual.calculaCamino();
 	}
 	
-
 	/**
-	 * Comprueba si el nodo que sacamos de abiertos coincide en la g con el nodo correspondiente en la tabla hash auxiliar
-	 * @param abiertos cola con prioridad actual de abiertos
-	 * @param nodo_actual Nodo que queremos sacar de abiertos
-	 * @param abiertos_auxiliar Tabla Hash con las g actualizadas
-	 * @return true si es correcto y false si no
+	 * Método para desarrollar una ruta en el algoritmo IDA*
+	 * @param ruta Ruta actual
+	 * @param g Valor de g actual
+	 * @param cota Cota actual
+	 * @param nodo_objetivo Objetivo
+	 * @param muros muros y pinchos del mapa
+	 * @param stateObs 
+	 * @return Devuelve -1 si encontramos objetivo, infinito si no y un entero f en caso de sobrepasar la cota.
 	 */
-	private boolean esNodoCorrecto(Nodo nodo_actual, Hashtable<Double, Double> abiertos_auxiliar, PriorityQueue<Nodo> abiertos){
-		if (abiertos_auxiliar.get(nodo_actual.id)!=nodo_actual.g) {
-			System.out.println("g del nodo actual: "+ nodo_actual.g + " g de la tabla hash: "+abiertos_auxiliar.get(nodo_actual.id));
+	private int search(LinkedList<Nodo> ruta, int g, int cota, Nodo nodo_objetivo,Hashtable<Double,Boolean> muros,StateObservation stateObs) {
+		//Nodos usados para iterar
+		Nodo nodo,sucesor;
+		//Cola de prioridad de los sucesores de un nodo, ordenados según su f de menor a mayor (por eso elegimos la cola de prioridad)
+		PriorityQueue<Nodo> sucesores;
+		//Tomamos el último nodo que añadimos a la ruta
+		nodo=ruta.getLast();
+
+		int t;
+		
+		int f=(int) (g+nodo.h);
+		
+		// si nos pasamos de la cota devolvemos cuanto nos hemos pasado
+		if(f>cota) return f;
+		
+		//Lo expandimos
+		nodos_expandidos++;
+		//si es el objetivo 
+		if(nodo.equals(nodo_objetivo)) {
+			//devolvemos -1
+			return -1;
 		}
 		
-		if(!abiertos_auxiliar.containsKey(nodo_actual.id))
-			return false;
-		else if (abiertos_auxiliar.get(nodo_actual.id)==nodo_actual.g)
-			return true;
-		else {
-			nodo_actual.g=abiertos_auxiliar.get(nodo_actual.id);
-			nodo_actual.f=nodo_actual.h+nodo_actual.g;
-			abiertos.add(nodo_actual); //Lo colocamos en su lugar correspondiente en la cola ordenada
-			return false;
+		int min=Integer.MAX_VALUE;
+		//Calculamos sus sucesores
+		sucesores=calculaSucesores(nodo,muros,stateObs,nodo_objetivo);
+		//Mientras no esté vacía la cola de suscesores
+		while(!sucesores.isEmpty()) {
+			//sacamos el primero ordenado por f
+			sucesor=sucesores.poll();
+			//Si no está en la ruta ya lo ponemos al final
+			if(!ruta.contains(sucesor)) {
+				ruta.addLast(sucesor);
+				//Seguimos buscando desde ese hasta llegar al objetivo
+				t=search(ruta,g+1,cota,nodo_objetivo,muros,stateObs);
+				//Si lo encontramos devolver -1
+				if(t==-1) return -1;
+				//Si nos pasamos de cota y es menor que el mínimo lo actualizamos
+				if(t<min) min=t;
+				//Quitamos el sucesor del final de la ruta y seguimos analizando el siguiente
+				ruta.removeLast();
+			}
 		}
-		
+		//devolvemos el mínimo
+		return min;
 	}
+
 
 	/**
 	 * Funcion para calcular los sucesores.
@@ -216,10 +203,10 @@ public class AgenteAStar extends AbstractPlayer {
 	 * @param stateObs Observation of the current state.
 	 * @param objetivo Nodo objetivo
 	 * 
-	 * @return array con los sucesores expandidos.
+	 * @return Lista con prioridad de los sucesores expandidos.
 	 */
-	public ArrayList<Nodo> calculaSucesores(Nodo nodo,Hashtable<Double,Boolean> muros, StateObservation stateObs, Nodo objetivo) {
-		ArrayList<Nodo> sucesores= new ArrayList<>();
+	public PriorityQueue<Nodo> calculaSucesores(Nodo nodo,Hashtable<Double,Boolean> muros, StateObservation stateObs, Nodo objetivo) {
+		PriorityQueue<Nodo> sucesores= new PriorityQueue<>();
 		Nodo sucesor;
 		//Probamos las cuatro acciones y calculamos la distancia del nuevo estado al portal.
         Vector2d newPos_up, newPos_down, newPos_left, newPos_right;
@@ -267,5 +254,4 @@ public class AgenteAStar extends AbstractPlayer {
 		return (double) (Math.abs(coord_actual.x - coord_dest.x)+Math.abs(coord_actual.y - coord_dest.y));
 		
 	}
-
 }
